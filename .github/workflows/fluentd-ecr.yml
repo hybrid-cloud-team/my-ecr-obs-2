@@ -1,0 +1,31 @@
+name: Build & Push Fluentd to ECR
+
+on:
+  push:
+    paths:
+      - "obs/fluentd/**"
+      - ".github/workflows/fluentd-ecr.yml"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image
+        run: docker build -t fluentd:1.0.0 ./obs/fluentd/image
+
+      - name: Tag image
+        run: docker tag fluentd:1.0.0 635014547592.dkr.ecr.ap-northeast-2.amazonaws.com/fluentd:1.0.0
+
+      - name: Push image
+        run: docker push 635014547592.dkr.ecr.ap-northeast-2.amazonaws.com/fluentd:1.0.0
