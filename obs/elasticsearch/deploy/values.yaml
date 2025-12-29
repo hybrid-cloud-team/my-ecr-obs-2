@@ -1,0 +1,25 @@
+nodeSets:
+  - name: master
+    count: 1
+    config:
+      cluster.name: logging-elasticsearch
+      discovery.type: single-node
+      xpack.security.enabled: false
+    podTemplate:
+      spec:
+        containers:
+          - name: elasticsearch
+            resources:
+              requests:
+                cpu: "500m"
+                memory: "1Gi"
+              limits:
+                cpu: "1"
+                memory: "2Gi"
+
+service:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 9200
+      targetPort: 9200
