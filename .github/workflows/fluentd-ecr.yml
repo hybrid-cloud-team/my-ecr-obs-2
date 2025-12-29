@@ -5,6 +5,7 @@ on:
     paths:
       - "obs/fluentd/**"
       - ".github/workflows/fluentd-ecr.yml"
+  workflow_dispatch:
 
 jobs:
   build-and-push:
