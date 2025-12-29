@@ -10,6 +10,12 @@ spec:
     repoURL: https://helm.elastic.co
     chart: kibana
     targetRevision: 8.5.1
+    helm:
+      values: |
+        elasticsearchHosts: "http://elasticsearch:9200"
+
+        service:
+          type: ClusterIP
 
   destination:
     server: https://kubernetes.default.svc
