@@ -37,7 +37,7 @@ spec:
 
       containers:
         - name: elasticsearch
-          image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+          image: 635014547592.dkr.ecr.ap-northeast-2.amazonaws.com/elasticsearch:7.17.16
           imagePullPolicy: IfNotPresent
 
           # ❌ root 금지
@@ -82,3 +82,4 @@ spec:
   ports:
     - port: 9200
       targetPort: 9200
+
