@@ -16,22 +16,9 @@ spec:
       tolerations:
         - operator: Exists
 
-      # 🔴 여기 추가
-      initContainers:
-        - name: install-s3-plugin
-          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch7-1
-          command:
-            - sh
-            - -c
-            - |
-              fluent-gem install fluent-plugin-s3
-          volumeMounts:
-            - name: fluentd-gems
-              mountPath: /fluentd/vendor/bundle
-
       containers:
         - name: fluentd
-          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch7-1
+          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-s3-1
           imagePullPolicy: IfNotPresent
           args:
             - "-c"
@@ -49,9 +36,6 @@ spec:
               mountPath: /var/log
             - name: containers
               mountPath: /var/log/containers
-            # 🔴 여기 추가
-            - name: fluentd-gems
-              mountPath: /fluentd/vendor/bundle
 
       volumes:
         - name: config-volume
@@ -63,6 +47,3 @@ spec:
         - name: containers
           hostPath:
             path: /var/log/containers
-        # 🔴 여기 추가
-        - name: fluentd-gems
-          emptyDir: {}
