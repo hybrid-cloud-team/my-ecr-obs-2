@@ -4,7 +4,7 @@ metadata:
   name: elasticsearch
   namespace: logging
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::635014547592:role/ElasticsearchS3-Role
+    eks.amazonaws.com/role-arn: arn:aws:iam::635014547592:role/Elasticsearch-S3Role
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -82,5 +82,6 @@ spec:
   ports:
     - port: 9200
       targetPort: 9200
+
 
 
