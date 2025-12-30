@@ -22,20 +22,49 @@ spec:
         app: elasticsearch
     spec:
       serviceAccountName: elasticsearch
+
+      # ✅ Elasticsearch 필수 커널 설정
+      initContainers:
+        - name: set-vm-max-map-count
+          image: busybox:1.36
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          command:
+            - sh
+            - -c
+            - sysctl -w vm.max_map_count=262144
+
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+          imagePullPolicy: IfNotPresent
+
+          # ✅ 권한 필수
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            runAsGroup: 0
+
           ports:
             - containerPort: 9200
+
           env:
             - name: discovery.type
               value: single-node
+
+            # 보안 비활성화 (실습/포트폴리오 기준)
             - name: xpack.security.enabled
               value: "false"
+
+            # 메모리 제한에 맞게 JVM 설정
             - name: ES_JAVA_OPTS
               value: "-Xms512m -Xmx512m"
+
+            # IRSA 사용 시 권장 (명시)
             - name: AWS_REGION
               value: ap-northeast-2
+
           resources:
             requests:
               cpu: 500m
@@ -49,8 +78,10 @@ metadata:
   name: elasticsearch
   namespace: logging
 spec:
+  type: ClusterIP
   selector:
     app: elasticsearch
   ports:
-    - port: 9200
+    - name: http
+      port: 9200
       targetPort: 9200
