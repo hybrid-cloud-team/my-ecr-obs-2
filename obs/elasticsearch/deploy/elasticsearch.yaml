@@ -1,29 +1,8 @@
-# 0️⃣ Namespace (가장 먼저)
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
----
-# 1️⃣ ServiceAccount (IRSA)
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: elasticsearch
-  namespace: logging
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::<계정ID>:role/ElasticsearchS3Role
-    argocd.argoproj.io/sync-wave: "0"
----
-# 2️⃣ Elasticsearch Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: elasticsearch
   namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
 spec:
   replicas: 1
   selector:
@@ -34,7 +13,7 @@ spec:
       labels:
         app: elasticsearch
     spec:
-      serviceAccountName: elasticsearch   # 🔥 여기서 SA 사용
+      serviceAccountName: elasticsearch   # ⭐ 이게 핵심
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
@@ -46,27 +25,4 @@ spec:
             - name: xpack.security.enabled
               value: "false"
             - name: ES_JAVA_OPTS
-              value: "-Xms1g -Xmx1g"
-            - name: AWS_REGION
-              value: ap-northeast-2
-          resources:
-            requests:
-              cpu: 500m
-              memory: 2Gi
-            limits:
-              memory: 2Gi
----
-# 3️⃣ Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: elasticsearch
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-spec:
-  selector:
-    app: elasticsearch
-  ports:
-    - port: 9200
-      targetPort: 9200
+              value: "-Xms512m -Xmx512m"
