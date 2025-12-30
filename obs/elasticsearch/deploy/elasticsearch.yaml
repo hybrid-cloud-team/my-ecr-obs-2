@@ -14,6 +14,21 @@ spec:
         app: elasticsearch
     spec:
       serviceAccountName: elasticsearch   # 🔥 IRSA 핵심
+
+      # 🔥 IRSA + Elasticsearch 8.x 필수
+      initContainers:
+        - name: aws-web-identity-link
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              ln -sf /var/run/secrets/eks.amazonaws.com/serviceaccount/token \
+                     /usr/share/elasticsearch/config/aws-web-identity-token
+          volumeMounts:
+            - name: es-config
+              mountPath: /usr/share/elasticsearch/config
+
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
@@ -26,6 +41,13 @@ spec:
               value: "false"
             - name: ES_JAVA_OPTS
               value: "-Xms512m -Xmx512m"
+          volumeMounts:
+            - name: es-config
+              mountPath: /usr/share/elasticsearch/config
+
+      volumes:
+        - name: es-config
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -38,4 +60,3 @@ spec:
   ports:
     - port: 9200
       targetPort: 9200
-
