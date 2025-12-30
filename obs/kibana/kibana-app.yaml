@@ -7,15 +7,9 @@ spec:
   project: default
 
   source:
-    repoURL: https://helm.elastic.co
-    chart: kibana
-    targetRevision: 8.5.1
-    helm:
-      values: |
-        elasticsearchHosts: "http://elasticsearch:9200"
-
-        service:
-          type: ClusterIP
+    repoURL: https://github.com/hybrid-cloud-team/my-ecr-obs-2.git
+    targetRevision: main
+    path: obs/kibana/deploy   # ✅ 실제 존재
 
   destination:
     server: https://kubernetes.default.svc
