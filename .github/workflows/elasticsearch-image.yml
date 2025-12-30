@@ -4,7 +4,8 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "obs/elasticsearch/image/**"
+      - "obs/elasticsearch/image/Dockerfile"
+  workflow_dispatch: {}
 
 env:
   AWS_REGION: ap-northeast-2
