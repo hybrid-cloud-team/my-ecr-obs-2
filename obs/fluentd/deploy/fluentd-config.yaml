@@ -9,24 +9,22 @@ data:
       @type tail
       path /var/log/containers/*.log
       pos_file /var/log/fluentd-containers.pos
-      tag kube.*
+      tag kubernetes.*
       read_from_head true
       <parse>
         @type cri
       </parse>
     </source>
 
-    <filter kube.**>
-      @type kubernetes_metadata
-    </filter>
-
-    <match kube.**>
+    <match kubernetes.**>
       @type elasticsearch
-      host elasticsearch.logging.svc.cluster.local
+      host elasticsearch
       port 9200
       scheme http
+
       logstash_format true
       logstash_prefix fluentd
+
       reconnect_on_error true
       reload_on_failure true
 
