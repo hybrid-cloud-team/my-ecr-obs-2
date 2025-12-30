@@ -23,6 +23,7 @@ spec:
     spec:
       serviceAccountName: elasticsearch
 
+      # ✅ 노드 커널 설정 (root 필요)
       initContainers:
         - name: set-vm-max-map-count
           image: busybox:1.36
@@ -39,6 +40,8 @@ spec:
           image: 635014547592.dkr.ecr.ap-northeast-2.amazonaws.com/elasticsearch:7.17.16
           imagePullPolicy: IfNotPresent
 
+          # ❌ root 금지
+          # ⭕ Elasticsearch는 반드시 non-root
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
@@ -57,21 +60,8 @@ spec:
             - name: ES_JAVA_OPTS
               value: "-Xms512m -Xmx512m"
 
-            # ✅ S3 Snapshot용 AWS 설정 (Secret 직접 주입)
             - name: AWS_REGION
               value: ap-northeast-2
-
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: es-s3-creds
-                  key: AWS_ACCESS_KEY_ID
-
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: es-s3-creds
-                  key: AWS_SECRET_ACCESS_KEY
 
           resources:
             requests:
@@ -92,3 +82,7 @@ spec:
   ports:
     - port: 9200
       targetPort: 9200
+
+
+
+
