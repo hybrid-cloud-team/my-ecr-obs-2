@@ -12,19 +12,38 @@ spec:
       labels:
         app: fluentd
     spec:
+      serviceAccountName: fluentd
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
       containers:
         - name: fluentd
-          image: fluent/fluentd:v1.16
+          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch8-1.0
+          securityContext:
+            privileged: true
+          args:
+            - "-c"
+            - "/fluentd/etc/fluent.conf"
           resources:
             requests:
               cpu: 100m
-              memory: 100Mi
-            limits:
               memory: 200Mi
+            limits:
+              memory: 400Mi
           volumeMounts:
+            - name: config-volume
+              mountPath: /fluentd/etc
             - name: varlog
               mountPath: /var/log
+            - name: containers
+              mountPath: /var/log/containers
       volumes:
+        - name: config-volume
+          configMap:
+            name: fluentd-config
         - name: varlog
           hostPath:
             path: /var/log
+        - name: containers
+          hostPath:
+            path: /var/log/containers
