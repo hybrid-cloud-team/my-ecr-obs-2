@@ -1,3 +1,67 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluentd
+  namespace: logging
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::635014547592:role/fluentd-s3-irsa-role
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: logging
+data:
+  fluent.conf: |
+    <system>
+      log_level info
+    </system>
+
+    <source>
+      @type tail
+      path /var/log/containers/*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      tag kubernetes.*
+      read_from_head true
+      <parse>
+        @type json
+        time_key time
+        time_format %Y-%m-%dT%H:%M:%S.%N%z
+      </parse>
+    </source>
+
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+    </filter>
+
+    <match **>
+      @type copy
+
+      <store>
+        @type elasticsearch
+        host elasticsearch.logging.svc.cluster.local
+        port 9200
+        logstash_format true
+        logstash_prefix fluentd
+        include_tag_key true
+        type_name _doc
+      </store>
+
+      <store>
+        @type s3
+        s3_bucket my-es-backup-bucket-hs-snapshot
+        s3_region ap-northeast-2
+        path logs/%Y/%m/%d/
+        store_as gzip
+
+        <buffer time>
+          timekey 1m
+          timekey_wait 10s
+          chunk_limit_size 1m
+        </buffer>
+      </store>
+    </match>
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -15,20 +79,12 @@ spec:
       serviceAccountName: fluentd
       tolerations:
         - operator: Exists
-
       containers:
         - name: fluentd
-          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-s3-1
-          imagePullPolicy: IfNotPresent
+          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch7-1
           args:
             - "-c"
             - "/fluentd/etc/fluent.conf"
-          resources:
-            requests:
-              cpu: 100m
-              memory: 512Mi
-            limits:
-              memory: 1Gi
           volumeMounts:
             - name: config-volume
               mountPath: /fluentd/etc
@@ -36,7 +92,6 @@ spec:
               mountPath: /var/log
             - name: containers
               mountPath: /var/log/containers
-
       volumes:
         - name: config-volume
           configMap:
