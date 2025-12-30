@@ -1,10 +1,29 @@
+# 0️⃣ Namespace (가장 먼저)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+---
+# 1️⃣ ServiceAccount (IRSA)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: elasticsearch
+  namespace: logging
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::<계정ID>:role/ElasticsearchS3Role
+    argocd.argoproj.io/sync-wave: "0"
+---
+# 2️⃣ Elasticsearch Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: elasticsearch
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "1"   # ✅ ServiceAccount 이후 적용
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   replicas: 1
   selector:
@@ -15,7 +34,7 @@ spec:
       labels:
         app: elasticsearch
     spec:
-      serviceAccountName: elasticsearch   # 🔥 IRSA 핵심 (이것만 있으면 됨)
+      serviceAccountName: elasticsearch   # 🔥 여기서 SA 사용
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
@@ -37,13 +56,14 @@ spec:
             limits:
               memory: 2Gi
 ---
+# 3️⃣ Service
 apiVersion: v1
 kind: Service
 metadata:
   name: elasticsearch
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "1"   # Deployment와 동일 wave
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   selector:
     app: elasticsearch
