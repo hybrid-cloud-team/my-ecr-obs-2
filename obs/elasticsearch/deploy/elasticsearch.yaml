@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: elasticsearch
   namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"   # ✅ ServiceAccount 이후 적용
 spec:
   replicas: 1
   selector:
@@ -40,10 +42,11 @@ kind: Service
 metadata:
   name: elasticsearch
   namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"   # Deployment와 동일 wave
 spec:
   selector:
     app: elasticsearch
   ports:
     - port: 9200
       targetPort: 9200
-
