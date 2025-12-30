@@ -1,3 +1,11 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: elasticsearch
+  namespace: logging
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::635014547592:role/ElasticsearchS3Role
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,7 +21,7 @@ spec:
       labels:
         app: elasticsearch
     spec:
-      serviceAccountName: elasticsearch   # ⭐ 이게 핵심
+      serviceAccountName: elasticsearch
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
@@ -26,3 +34,23 @@ spec:
               value: "false"
             - name: ES_JAVA_OPTS
               value: "-Xms512m -Xmx512m"
+            - name: AWS_REGION
+              value: ap-northeast-2
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: logging
+spec:
+  selector:
+    app: elasticsearch
+  ports:
+    - port: 9200
+      targetPort: 9200
