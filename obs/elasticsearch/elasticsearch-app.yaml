@@ -3,6 +3,11 @@ kind: Application
 metadata:
   name: elasticsearch
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: |
+      elasticsearch=635014547592.dkr.ecr.ap-northeast-2.amazonaws.com/elasticsearch-s3
+    argocd-image-updater.argoproj.io/elasticsearch.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/elasticsearch.allow-tags: regexp:^7\.17\.16$
 spec:
   project: default
 
