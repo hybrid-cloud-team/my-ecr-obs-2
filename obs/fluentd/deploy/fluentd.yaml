@@ -62,38 +62,56 @@ data:
       log_level info
     </system>
 
+    # =========================
+    # INPUT
+    # =========================
     <source>
       @type tail
       path /var/log/containers/*.log
       pos_file /fluentd/log/fluentd.pos
-      tag kubernetes.*
+      tag kube.*
       read_from_head true
 
-      # ❗ 파싱 제거 (핵심)
-      format none
+      # 🔑 CRI 로그 전용 파서
+      <parse>
+        @type cri
+      </parse>
+
+      # 🔑 Fluentd 자신의 로그 제외 (무한루프 차단)
+      exclude_path /var/log/containers/*fluentd*.log
     </source>
 
-    <filter kubernetes.**>
+    # =========================
+    # METADATA
+    # =========================
+    <filter kube.**>
       @type kubernetes_metadata
     </filter>
 
-    <match **>
+    # =========================
+    # OUTPUT
+    # =========================
+    <match kube.**>
       @type elasticsearch
       host elasticsearch.logging.svc.cluster.local
       port 9200
       scheme http
+
       logstash_format true
       logstash_prefix fluentd
       include_tag_key true
 
-      # ❗ 버퍼 안정화 (핵심)
+      # 🔑 버퍼를 파일로 (폭발 방지)
       <buffer>
+        @type file
+        path /fluentd/log/buffer
         flush_interval 5s
         chunk_limit_size 2m
-        queue_limit_length 8
+        queue_limit_length 32
         retry_forever true
       </buffer>
     </match>
+
 
 ---
 # =========================
