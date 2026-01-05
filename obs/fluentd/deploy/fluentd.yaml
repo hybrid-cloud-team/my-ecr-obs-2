@@ -49,6 +49,9 @@ data:
         Merge_Log           On
         Keep_Log            On
 
+    # =========================
+    # Elasticsearch OUTPUT
+    # =========================
     [OUTPUT]
         Name            es
         Match           kube.*
@@ -57,6 +60,21 @@ data:
         Logstash_Format On
         Logstash_Prefix fluentd
         Replace_Dots    On
+
+    # =========================
+    # S3 OUTPUT (원본 로그 아카이브)
+    # =========================
+    [OUTPUT]
+        Name                s3
+        Match               kube.*
+        bucket              my-fluentbit-raw-logs-1
+        region              us-east-1
+        total_file_size     50M
+        upload_timeout      10m
+        compression         gzip
+
+        s3_key_format       /logs/%Y/%m/%d/%H/%UUID.gz
+        s3_key_format_tag_delimiters ._
 ---
 # =========================
 # DaemonSet (이름 유지)
