@@ -118,7 +118,7 @@ spec:
 
       containers:
         - name: fluentd
-          image: fluent/fluentd-kubernetes-daemonset:v1.15-debian-elasticsearch7-1.0
+          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch7-1.0
           imagePullPolicy: IfNotPresent
 
           args:
