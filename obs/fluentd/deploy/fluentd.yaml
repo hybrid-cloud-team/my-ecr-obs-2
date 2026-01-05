@@ -14,6 +14,9 @@ kind: ServiceAccount
 metadata:
   name: fluentd
   namespace: logging
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::635014547592:role/fluentd-s3-irsa-role
+
 ---
 # =========================
 # ConfigMap
