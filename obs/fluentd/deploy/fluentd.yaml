@@ -1,4 +1,12 @@
 # =========================
+# Namespace (없으면 생성)
+# =========================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logging
+---
+# =========================
 # ServiceAccount
 # =========================
 apiVersion: v1
@@ -6,8 +14,6 @@ kind: ServiceAccount
 metadata:
   name: fluentd
   namespace: logging
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::635014547592:role/fluentd-s3-irsa-role
 ---
 # =========================
 # ClusterRole
@@ -59,12 +65,14 @@ data:
     <source>
       @type tail
       path /var/log/containers/*.log
-      pos_file /fluentd/log/fluentd-containers.log.pos
+      pos_file /fluentd/log/fluentd.pos
       tag kubernetes.*
       read_from_head true
 
       <parse>
-        @type cri
+        @type json
+        time_key time
+        time_format %Y-%m-%dT%H:%M:%S.%N%z
       </parse>
     </source>
 
@@ -72,20 +80,14 @@ data:
       @type kubernetes_metadata
     </filter>
 
-    <match kubernetes.**>
+    <match **>
       @type elasticsearch
       host elasticsearch.logging.svc.cluster.local
       port 9200
       scheme http
-
       logstash_format true
       logstash_prefix fluentd
       include_tag_key true
-      suppress_type_name true
-
-      verify_es_version_at_startup false
-      reconnect_on_error true
-      reload_on_failure true
     </match>
 ---
 # =========================
@@ -107,23 +109,17 @@ spec:
     spec:
       serviceAccountName: fluentd
 
-      # 로그 파일 접근 필수
       securityContext:
         runAsUser: 0
-        runAsGroup: 0
-        fsGroup: 0
 
       tolerations:
         - operator: Exists
 
       containers:
         - name: fluentd
-          image: 635014547592.dkr.ecr.us-east-1.amazonaws.com/fluentd:fixed
+          # ⭐ 이미 존재하는 ECR 이미지 사용
+          image: 635014547592.dkr.ecr.us-east-1.amazonaws.com/fluentd:1.0.0
           imagePullPolicy: IfNotPresent
-
-          args:
-            - "-c"
-            - "/fluentd/etc/fluent.conf"
 
           volumeMounts:
             - name: config-volume
