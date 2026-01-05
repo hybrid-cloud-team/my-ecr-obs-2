@@ -105,10 +105,11 @@ spec:
             - "/fluentd/etc/fluent.conf"
             - "--no-supervisor"
           volumeMounts:
-            - name: config-volume
-              mountPath: /fluentd/etc
-            - name: empty-conf-dir
-              mountPath: /fluentd/etc/fluent.conf.d
+            # 🔥 핵심: fluent.conf 파일 하나만 정확히 덮어쓴다
+            - name: fluentd-config
+              mountPath: /fluentd/etc/fluent.conf
+              subPath: fluent.conf
+
             - name: varlog
               mountPath: /var/log
             - name: containers
@@ -116,11 +117,9 @@ spec:
             - name: fluentd-buffer
               mountPath: /var/log/fluentd-buffers
       volumes:
-        - name: config-volume
+        - name: fluentd-config
           configMap:
             name: fluentd-config
-        - name: empty-conf-dir
-          emptyDir: {}
         - name: varlog
           hostPath:
             path: /var/log
