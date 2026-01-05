@@ -28,42 +28,38 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush        5
-        Log_Level    info
-        storage.type filesystem
-        storage.path /var/fluent-bit/state
+        Flush                 1
+        Log_Level             info
+        storage.type          filesystem
+        storage.path          /var/fluent-bit/state
+        storage.sync          normal
+        storage.checksum      off
 
     [INPUT]
-        Name              tail
-        Path              /var/log/containers/*.log
-        Exclude_Path      *fluentd*.log,*fluent-bit*.log
-        Tag               kube.*
-        Refresh_Interval  5
-        Skip_Long_Lines   On
+        Name                  tail
+        Path                  /var/log/containers/*.log
+        Exclude_Path          *fluentd*.log,*fluent-bit*.log
+        Tag                   kube.*
+        Refresh_Interval      1
+        Rotate_Wait           5
+        Skip_Long_Lines       On
 
     [FILTER]
-        Name      kubernetes
-        Match     kube.*
-        Merge_Log On
-        Keep_Log  On
+        Name                  kubernetes
+        Match                 kube.*
+        Merge_Log             On
+        Keep_Log              On
 
     [OUTPUT]
-        Name            es
-        Match           kube.*
-        Host            elasticsearch.logging.svc.cluster.local
-        Port            9200
-        Logstash_Format On
-        Logstash_Prefix fluentd
-
-    [OUTPUT]
-        Name            s3
-        Match           kube.*
-        bucket          my-fluentbit-raw-logs-1
-        region          us-east-1
-        total_file_size 5M
-        upload_timeout  60s
-        compression     gzip
-        s3_key_format   /logs/%Y/%m/%d/%H/%UUID.gz
+        Name                  s3
+        Match                 kube.*
+        bucket                my-fluentbit-raw-logs-1
+        region                us-east-1
+        total_file_size       5M
+        upload_timeout        5s
+        compression           gzip
+        use_put_object        On
+        s3_key_format         /logs/%Y/%m/%d/%H/%UUID.gz
 
 
 
