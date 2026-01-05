@@ -9,7 +9,7 @@ spec:
   source:
     repoURL: https://github.com/hybrid-cloud-team/my-ecr-obs-2.git
     targetRevision: main
-    path: obs/fluentd   # ← fluentd.yaml 이 들어있는 디렉토리
+    path: obs/fluentd/deploy
 
   destination:
     server: https://kubernetes.default.svc
