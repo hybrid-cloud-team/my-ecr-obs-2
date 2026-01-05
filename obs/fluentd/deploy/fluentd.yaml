@@ -12,7 +12,7 @@ metadata:
   name: fluentd-config
   namespace: logging
 data:
-  custom.conf: |
+  fluent.conf: |
     <system>
       log_level info
     </system>
@@ -77,14 +77,12 @@ spec:
         - name: fluentd
           image: 635014547592.dkr.ecr.us-east-1.amazonaws.com/fluentd:1.0.0
           imagePullPolicy: IfNotPresent
-          env:
-            # 🔥 핵심: 이 변수로 설정 파일을 강제 지정
-            - name: FLUENTD_CONF
-              value: custom.conf
           volumeMounts:
+            # 🔥 핵심: fluent.conf 파일 자체를 정확히 덮어씀
             - name: fluentd-config
-              mountPath: /fluentd/etc/custom.conf
-              subPath: custom.conf
+              mountPath: /fluentd/etc/fluent.conf
+              subPath: fluent.conf
+
             - name: varlog
               mountPath: /var/log
             - name: containers
