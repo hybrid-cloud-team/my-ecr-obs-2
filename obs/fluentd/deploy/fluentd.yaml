@@ -41,7 +41,7 @@ data:
         Exclude_Path          *fluentd*.log,*fluent-bit*.log
         Tag                   kube.*
         Refresh_Interval      1
-        Rotate_Wait           30
+        Rotate_Wait           5
         Skip_Long_Lines       On
 
     [FILTER]
@@ -56,12 +56,13 @@ data:
         bucket                my-fluentbit-raw-logs-1
         region                us-east-1
 
+        # ⭐ 핵심 3줄
         total_file_size       1M
         upload_timeout        30s
-        compression           gzip
         use_put_object        On
 
-        s3_key_format         /logs/%Y/%m/%d/%H/%M/%UUID.gz
+        compression           gzip
+        s3_key_format         /logs/%Y/%m/%d/%H/%UUID.gz
 
 
 
