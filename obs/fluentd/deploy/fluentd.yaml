@@ -50,7 +50,7 @@ data:
       <store>
         @type s3
         s3_bucket my-es-backup-bucket-hs-snapshot
-        s3_region ap-northeast-2
+        s3_region us-east-1
         path logs/%Y/%m/%d/
         store_as gzip
 
@@ -81,7 +81,8 @@ spec:
         - operator: Exists
       containers:
         - name: fluentd
-          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch7-1
+          image: 635014547592.dkr.ecr.us-east-1.amazonaws.com/fluentd:1.0.0
+          imagePullPolicy: IfNotPresent
           args:
             - "-c"
             - "/fluentd/etc/fluent.conf"
