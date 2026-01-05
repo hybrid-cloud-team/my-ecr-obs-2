@@ -28,53 +28,43 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush                 5
-        Log_Level             info
-        storage.type          filesystem
-        storage.path          /var/fluent-bit/state
-        storage.sync          normal
-        storage.checksum      off
-        storage.max_chunks_up 128
+    Flush        5
+    Log_Level    info
+    storage.type filesystem
+    storage.path /var/fluent-bit/state
 
     [INPUT]
-        Name              tail
-        Path              /var/log/containers/*.log
-        Exclude_Path      *fluentd*.log,*fluent-bit*.log
-        Tag               kube.*
-        Refresh_Interval  5
-        Skip_Long_Lines   On
-        storage.type      filesystem
+    Name              tail
+    Path              /var/log/containers/*.log
+    Exclude_Path      *fluentd*.log,*fluent-bit*.log
+    Tag               kube.*
+    Refresh_Interval  5
+    Skip_Long_Lines   On
+    # ❌ storage.type 여기서 제거
 
     [FILTER]
-        Name      kubernetes
-        Match     kube.*
-        Merge_Log On
-        Keep_Log  On
+    Name      kubernetes
+    Match     kube.*
+    Merge_Log On
+    Keep_Log  On
 
-    # =========================
-    # Elasticsearch OUTPUT
-    # =========================
     [OUTPUT]
-        Name            es
-        Match           kube.*
-        Host            elasticsearch.logging.svc.cluster.local
-        Port            9200
-        Logstash_Format On
-        Logstash_Prefix fluentd
-        Replace_Dots    On
+    Name            es
+    Match           kube.*
+    Host            elasticsearch.logging.svc.cluster.local
+    Port            9200
+    Logstash_Format On
+    Logstash_Prefix fluentd
 
-    # =========================
-    # S3 OUTPUT (원본 로그 아카이브)
-    # =========================
     [OUTPUT]
-        Name              s3
-        Match             kube.*
-        bucket            my-fluentbit-raw-logs-1
-        region            us-east-1
-        total_file_size   10K
-        upload_timeout    10s
-        compression       gzip
-        s3_key_format     /logs/%Y/%m/%d/%H/%UUID.gz
+    Name            s3
+    Match           kube.*
+    bucket          my-fluentbit-raw-logs-1
+    region          us-east-1
+    total_file_size 10K
+    upload_timeout  10s
+    compression     gzip
+    s3_key_format   /logs/%Y/%m/%d/%H/%UUID.gz
 ---
 # =========================
 # DaemonSet (이름 유지)
