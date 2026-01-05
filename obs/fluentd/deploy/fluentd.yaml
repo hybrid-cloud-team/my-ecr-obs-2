@@ -28,35 +28,30 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush                 1
+        Flush                 10
         Log_Level             info
         storage.type          filesystem
         storage.path          /var/fluent-bit/state
+        storage.sync          normal
+        storage.checksum      off
 
     [INPUT]
         Name                  tail
         Path                  /var/log/containers/*.log
         Exclude_Path          *fluentd*.log,*fluent-bit*.log
         Tag                   kube.raw
-        Refresh_Interval      1
+        Refresh_Interval      5
+        Rotate_Wait           30
         Skip_Long_Lines       On
 
     # ======================
-    # Tag 분리
+    # ES (실시간 조회)
     # ======================
     [FILTER]
         Name   rewrite_tag
         Match  kube.raw
         Rule   $log .* kube.es true
 
-    [FILTER]
-        Name   rewrite_tag
-        Match  kube.raw
-        Rule   $log .* kube.s3 true
-
-    # ======================
-    # Elasticsearch (실시간)
-    # ======================
     [OUTPUT]
         Name            es
         Match           kube.es
@@ -67,18 +62,27 @@ data:
         Replace_Dots    On
 
     # ======================
-    # S3 (아카이브)
+    # S3 (저비용 아카이브)
     # ======================
+    [FILTER]
+        Name   rewrite_tag
+        Match  kube.raw
+        Rule   $log .* kube.s3 true
+
     [OUTPUT]
         Name                s3
         Match               kube.s3
         bucket              my-fluentbit-raw-logs-1
         region              us-east-1
-        total_file_size     20M
-        upload_timeout      120s
-        compression         gzip
-        s3_key_format       /logs/%Y/%m/%d/%H/%UUID.gz
 
+        # 🔥 비용 핵심 옵션
+        total_file_size     200M
+        upload_timeout      30m
+
+        compression         gzip
+        use_put_object      Off
+
+        s3_key_format       /logs/%Y/%m/%d/%H/%UUID.gz
 
 
 
