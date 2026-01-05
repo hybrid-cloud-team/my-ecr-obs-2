@@ -39,35 +39,16 @@ data:
 
     <filter kubernetes.**>
       @type kubernetes_metadata
-      @id kubernetes_metadata
     </filter>
 
     <match **>
-      @type copy
-
-      <store>
-        @type elasticsearch
-        host elasticsearch.logging.svc.cluster.local
-        port 9200
-        logstash_format true
-        logstash_prefix fluentd
-        include_tag_key true
-        type_name _doc
-      </store>
-
-      <store>
-        @type s3
-        s3_bucket my-es-backup-bucket-hs-snapshot
-        s3_region us-east-1
-        path logs/%Y/%m/%d/
-        store_as gzip
-
-        <buffer time>
-          timekey 1m
-          timekey_wait 10s
-          chunk_limit_size 1m
-        </buffer>
-      </store>
+      @type elasticsearch
+      host elasticsearch.logging.svc.cluster.local
+      port 9200
+      logstash_format true
+      logstash_prefix fluentd
+      include_tag_key true
+      type_name _doc
     </match>
 ---
 apiVersion: apps/v1
@@ -75,10 +56,14 @@ kind: DaemonSet
 metadata:
   name: fluentd
   namespace: logging
+  labels:
+    app: fluentd
 spec:
   selector:
     matchLabels:
       app: fluentd
+  updateStrategy:
+    type: RollingUpdate
   template:
     metadata:
       labels:
@@ -90,12 +75,13 @@ spec:
       containers:
         - name: fluentd
           image: 635014547592.dkr.ecr.us-east-1.amazonaws.com/fluentd:1.0.0
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
+          command: ["fluentd"]
           args:
             - "-c"
             - "/fluentd/etc/fluent.conf"
+            - "-v"
           volumeMounts:
-            # 🔴 핵심: 파일 단위로 덮어쓴다
             - name: config-volume
               mountPath: /fluentd/etc/fluent.conf
               subPath: fluent.conf
