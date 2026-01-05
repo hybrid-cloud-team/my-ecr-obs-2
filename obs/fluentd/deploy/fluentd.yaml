@@ -72,14 +72,28 @@ data:
       tag kube.*
       read_from_head true
 
-      # 🔑 CRI 로그 전용 파서
       <parse>
         @type cri
       </parse>
-
-      # 🔑 Fluentd 자신의 로그 제외 (무한루프 차단)
-      exclude_path /var/log/containers/*fluentd*.log
     </source>
+
+    # =========================
+    # 🔴 Fluentd 자기 로그 완전 차단
+    # =========================
+    <filter fluent.**>
+      @type drop
+    </filter>
+
+    # =========================
+    # 🔴 logging 네임스페이스 로그 차단
+    # =========================
+    <filter kube.**>
+      @type grep
+      <exclude>
+        key $.kubernetes.namespace_name
+        pattern ^logging$
+      </exclude>
+    </filter>
 
     # =========================
     # METADATA
@@ -101,13 +115,12 @@ data:
       logstash_prefix fluentd
       include_tag_key true
 
-      # 🔑 버퍼를 파일로 (폭발 방지)
       <buffer>
         @type file
         path /fluentd/log/buffer
         flush_interval 5s
         chunk_limit_size 2m
-        queue_limit_length 32
+        queue_limit_length 64
         retry_forever true
       </buffer>
     </match>
