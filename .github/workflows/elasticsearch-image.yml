@@ -5,10 +5,10 @@ on:
     branches: [ "main" ]
     paths:
       - "obs/elasticsearch/image/Dockerfile"
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 env:
-  AWS_REGION: ap-northeast-2
+  AWS_REGION: us-east-1          # 🔴 수정
   ECR_REPOSITORY: elasticsearch
   IMAGE_TAG: 7.17.16
   AWS_ACCOUNT_ID: 635014547592
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (Access Key)
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -37,13 +37,13 @@ jobs:
             -t $ECR_REPOSITORY:${IMAGE_TAG} \
             obs/elasticsearch/image
 
-      - name: Tag image
+      - name: Tag Docker image
         run: |
           docker tag \
             $ECR_REPOSITORY:${IMAGE_TAG} \
             $AWS_ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/$ECR_REPOSITORY:${IMAGE_TAG}
 
-      - name: Push image to ECR
+      - name: Push Docker image to ECR
         run: |
           docker push \
             $AWS_ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/$ECR_REPOSITORY:${IMAGE_TAG}
