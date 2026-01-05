@@ -67,7 +67,7 @@ data:
         total_file_size 1M
         upload_timeout  60s
         compression     gzip
-        s3_key_format   logs/%Y/%m/%d/%H/%UUID.gz
+        s3_key_format   /logs/%Y/%m/%d/%H/%UUID.gz
 
 ---
 # =========================
