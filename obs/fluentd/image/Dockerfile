@@ -1,43 +1,31 @@
 # ===============================
-# Fluentd (Production Base)
+# Fluentd (EKS + Elasticsearch)
 # ===============================
-FROM fluent/fluentd:v1.16-1
+FROM fluent/fluentd:v1.16-debian-1
 
 USER root
-WORKDIR /fluentd
 
-# -------------------------------
-# Build dependencies
-# -------------------------------
-RUN apk add --no-cache \
-    build-base \
+# Debian 계열이므로 apt 사용
+RUN apt-get update && apt-get install -y \
+    build-essential \
     ruby-dev \
     curl \
     tzdata \
     libffi-dev \
-    openssl-dev \
-    yaml-dev \
- && rm -rf /var/cache/apk/*
+    libssl-dev \
+ && rm -rf /var/lib/apt/lists/*
 
-# -------------------------------
-# RubyGems / Bundler 안정화
-# -------------------------------
-RUN gem update --system \
- && gem install bundler
-
-# -------------------------------
-# Fluentd plugins (순서 중요)
-# -------------------------------
-RUN gem install fluent-plugin-kubernetes_metadata_filter
-RUN gem install fluent-plugin-elasticsearch
-RUN gem install fluent-plugin-record-reformer
-RUN gem install fluent-plugin-prometheus
-RUN gem install fluent-plugin-s3
+# 필수 플러그인만 설치 (정확)
+RUN gem install \
+    fluent-plugin-kubernetes_metadata_filter \
+    fluent-plugin-elasticsearch \
+    fluent-plugin-parser-cri \
+    fluent-plugin-prometheus \
+    fluent-plugin-s3 \
+ && gem sources --clear-all
 
 ENV TZ=Asia/Seoul
 
-RUN chown -R fluent:fluent /fluentd
-
 USER fluent
 
-CMD ["fluentd", "-c", "/fluentd/etc/fluent.conf", "-p", "/fluentd/plugins"]
+CMD ["fluentd", "-c", "/fluentd/etc/fluent.conf"]
