@@ -14,62 +14,70 @@ metadata:
 data:
   fluent.conf: |
     <system>
-  log_level info
-</system>
+      log_level info
+    </system>
 
-<source>
-  @type tail
-  path /var/log/containers/*.log
-  pos_file /var/log/fluentd-containers.log.pos
-  tag kubernetes.*
-  read_from_head true
+    <source>
+      @type tail
+      path /var/log/containers/*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      tag kubernetes.*
+      read_from_head true
 
-  <parse>
-    @type multi_format
-    <pattern>
-      format json
-      time_key time
-      time_format %Y-%m-%dT%H:%M:%S.%N%z
-    </pattern>
-    <pattern>
-      format none
-    </pattern>
-  </parse>
-</source>
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_key time
+          time_format %Y-%m-%dT%H:%M:%S.%N%z
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </source>
 
-<filter kubernetes.**>
-  @type kubernetes_metadata
-  @id kubernetes_metadata
-</filter>
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      @id kubernetes_metadata
+    </filter>
 
-<match **>
-  @type copy
+    <match **>
+      @type copy
 
-  <store>
-    @type elasticsearch
-    host elasticsearch.logging.svc.cluster.local
-    port 9200
-    logstash_format true
-    logstash_prefix fluentd
-    include_tag_key true
-    type_name _doc
-  </store>
+      <store>
+        @type elasticsearch
+        host elasticsearch.logging.svc.cluster.local
+        port 9200
+        logstash_format true
+        logstash_prefix fluentd
+        include_tag_key true
+        type_name _doc
 
-  <store>
-    @type s3
-    s3_bucket my-es-backup-bucket-hs-snapshot
-    s3_region us-east-1
-    path logs/%Y/%m/%d/
-    store_as gzip
+        <buffer>
+          @type file
+          path /var/log/fluentd-buffers/es
+          flush_interval 5s
+          chunk_limit_size 2M
+          retry_forever true
+        </buffer>
+      </store>
 
-    <buffer time>
-      timekey 1m
-      timekey_wait 10s
-      chunk_limit_size 1m
-    </buffer>
-  </store>
-</match>
+      <store>
+        @type s3
+        s3_bucket my-es-backup-bucket-hs-snapshot
+        s3_region us-east-1
+        path logs/%Y/%m/%d/
+        store_as gzip
 
+        <buffer time>
+          timekey 1m
+          timekey_wait 10s
+          chunk_limit_size 1m
+          retry_forever true
+        </buffer>
+      </store>
+    </match>
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -102,6 +110,8 @@ spec:
               mountPath: /var/log
             - name: containers
               mountPath: /var/log/containers
+            - name: fluentd-buffer
+              mountPath: /var/log/fluentd-buffers
       volumes:
         - name: config-volume
           configMap:
@@ -112,3 +122,7 @@ spec:
         - name: containers
           hostPath:
             path: /var/log/containers
+        - name: fluentd-buffer
+          hostPath:
+            path: /var/log/fluentd-buffers
+            type: DirectoryOrCreate
