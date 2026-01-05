@@ -69,20 +69,17 @@ data:
         Match  kube.raw
         Rule   $log .* kube.s3 true
 
-    [OUTPUT]
-        Name                s3
-        Match               kube.s3
-        bucket              my-fluentbit-raw-logs-1
-        region              us-east-1
+    # [OUTPUT]
+#     Name                  s3
+#     Match                 kube.*
+#     bucket                my-fluentbit-raw-logs-1
+#     region                us-east-1
+#     total_file_size       200M
+#     upload_timeout        1h
+#     compression           gzip
+#     use_put_object        Off
+#     s3_key_format         /logs/%Y/%m/%d/%H/%M/%UUID.gz
 
-        # 🔥 비용 핵심 옵션
-        total_file_size     200M
-        upload_timeout      30m
-
-        compression         gzip
-        use_put_object      Off
-
-        s3_key_format       /logs/%Y/%m/%d/%H/%UUID.gz
 
 
 
