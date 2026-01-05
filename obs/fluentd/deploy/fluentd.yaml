@@ -69,11 +69,12 @@ data:
         Match               kube.*
         bucket              my-fluentbit-raw-logs-1
         region              us-east-1
-        total_file_size     50M
-        upload_timeout      10m
+        total_file_size     1k
+        upload_timeout      30s
+        rotate_on_flush     On
         compression         gzip
 
-        s3_key_format       /logs/%Y/%m/%d/%H/%UUID.gz
+        s3_key_format       logs/%Y/%m/%d/%H/%UUID.gz
         s3_key_format_tag_delimiters ._
 ---
 # =========================
