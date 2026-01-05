@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
         - name: kibana
-          image: docker.elastic.co/kibana/kibana:8.5.1
+          image: 635014547592.dkr.ecr.us-east-1.amazonaws.com/kibana:8.5.1
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5601
           env:
