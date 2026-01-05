@@ -25,15 +25,9 @@ data:
       read_from_head true
 
       <parse>
-        @type multi_format
-        <pattern>
-          format json
-          time_key time
-          time_format %Y-%m-%dT%H:%M:%S.%N%z
-        </pattern>
-        <pattern>
-          format none
-        </pattern>
+        @type json
+        time_key time
+        time_format %Y-%m-%dT%H:%M:%S.%N%z
       </parse>
     </source>
 
@@ -50,6 +44,7 @@ data:
       include_tag_key true
       type_name _doc
     </match>
+
 ---
 apiVersion: apps/v1
 kind: DaemonSet
