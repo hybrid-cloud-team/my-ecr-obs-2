@@ -7,7 +7,7 @@ metadata:
   name: logging
 ---
 # =========================
-# ServiceAccount
+# ServiceAccount (IRSA)
 # =========================
 apiVersion: v1
 kind: ServiceAccount
@@ -16,8 +16,10 @@ metadata:
   namespace: logging
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::635014547592:role/fluentd-s3-irsa-role
-
 ---
+# =========================
+# ConfigMap (Fluent Bit)
+# =========================
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -26,8 +28,13 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush        5
-        Log_Level    info
+        Flush                 5
+        Log_Level             info
+        storage.type          filesystem
+        storage.path          /var/fluent-bit/state
+        storage.sync          normal
+        storage.checksum      off
+        storage.max_chunks_up 128
 
     [INPUT]
         Name              tail
@@ -35,8 +42,8 @@ data:
         Exclude_Path      *fluentd*.log,*fluent-bit*.log
         Tag               kube.*
         Refresh_Interval  5
-        Mem_Buf_Limit     10MB
         Skip_Long_Lines   On
+        storage.type      filesystem
 
     [FILTER]
         Name      kubernetes
@@ -60,15 +67,14 @@ data:
     # S3 OUTPUT (원본 로그 아카이브)
     # =========================
     [OUTPUT]
-        Name            s3
-        Match           kube.*
-        bucket          my-fluentbit-raw-logs-1
-        region          us-east-1
-        total_file_size 1M
-        upload_timeout  60s
-        compression     gzip
-        s3_key_format   /logs/%Y/%m/%d/%H/%UUID.gz
-
+        Name              s3
+        Match             kube.*
+        bucket            my-fluentbit-raw-logs-1
+        region            us-east-1
+        total_file_size   10K
+        upload_timeout    10s
+        compression       gzip
+        s3_key_format     /logs/%Y/%m/%d/%H/%UUID.gz
 ---
 # =========================
 # DaemonSet (이름 유지)
@@ -108,6 +114,9 @@ spec:
             - name: config
               mountPath: /fluent-bit/etc/
 
+            - name: fluentbit-state
+              mountPath: /var/fluent-bit/state
+
       volumes:
         - name: varlog
           hostPath:
@@ -120,3 +129,6 @@ spec:
         - name: config
           configMap:
             name: fluentd-config
+
+        - name: fluentbit-state
+          emptyDir: {}
