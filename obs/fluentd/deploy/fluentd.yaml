@@ -70,7 +70,7 @@ data:
         bucket              my-fluentbit-raw-logs-1
         region              us-east-1
         total_file_size     50M
-        upload_timeout      10m
+        upload_timeout      1m
         compression         gzip
 
         s3_key_format       /logs/%Y/%m/%d/%H/%UUID.gz
