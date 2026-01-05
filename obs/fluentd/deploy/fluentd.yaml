@@ -69,11 +69,8 @@ data:
       tag kubernetes.*
       read_from_head true
 
-      <parse>
-        @type json
-        time_key time
-        time_format %Y-%m-%dT%H:%M:%S.%N%z
-      </parse>
+      # ❗ 파싱 제거 (핵심)
+      format none
     </source>
 
     <filter kubernetes.**>
@@ -88,7 +85,16 @@ data:
       logstash_format true
       logstash_prefix fluentd
       include_tag_key true
+
+      # ❗ 버퍼 안정화 (핵심)
+      <buffer>
+        flush_interval 5s
+        chunk_limit_size 2m
+        queue_limit_length 8
+        retry_forever true
+      </buffer>
     </match>
+
 ---
 # =========================
 # DaemonSet
