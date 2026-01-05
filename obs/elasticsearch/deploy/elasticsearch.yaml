@@ -23,7 +23,6 @@ spec:
     spec:
       serviceAccountName: elasticsearch
 
-      # ✅ 노드 커널 설정 (root 필요)
       initContainers:
         - name: set-vm-max-map-count
           image: busybox:1.36
@@ -37,11 +36,9 @@ spec:
 
       containers:
         - name: elasticsearch
-          image: 635014547592.dkr.ecr.ap-northeast-2.amazonaws.com/elasticsearch:7.17.16
+          image: 635014547592.dkr.ecr.us-east-1.amazonaws.com/elasticsearch:7.17.16
           imagePullPolicy: IfNotPresent
 
-          # ❌ root 금지
-          # ⭕ Elasticsearch는 반드시 non-root
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
@@ -53,15 +50,12 @@ spec:
           env:
             - name: discovery.type
               value: single-node
-
             - name: xpack.security.enabled
               value: "false"
-
             - name: ES_JAVA_OPTS
               value: "-Xms512m -Xmx512m"
-
             - name: AWS_REGION
-              value: ap-northeast-2
+              value: us-east-1
 
           resources:
             requests:
@@ -82,7 +76,3 @@ spec:
   ports:
     - port: 9200
       targetPort: 9200
-
-
-
-
