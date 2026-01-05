@@ -1,5 +1,5 @@
 # =========================
-# ServiceAccount (IRSA 유지)
+# ServiceAccount
 # =========================
 apiVersion: v1
 kind: ServiceAccount
@@ -10,7 +10,7 @@ metadata:
     eks.amazonaws.com/role-arn: arn:aws:iam::635014547592:role/fluentd-s3-irsa-role
 ---
 # =========================
-# ClusterRole (kubernetes_metadata)
+# ClusterRole
 # =========================
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -43,12 +43,12 @@ subjects:
     namespace: logging
 ---
 # =========================
-# ConfigMap (CRI 파서 + ES 출력 수정)
+# ConfigMap
 # =========================
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: fluentd-config-v2
+  name: fluentd-config
   namespace: logging
 data:
   fluent.conf: |
@@ -89,7 +89,7 @@ data:
     </match>
 ---
 # =========================
-# DaemonSet (권한 문제 해결)
+# DaemonSet
 # =========================
 apiVersion: apps/v1
 kind: DaemonSet
@@ -107,7 +107,7 @@ spec:
     spec:
       serviceAccountName: fluentd
 
-      # 🔴 로그 읽기 권한 핵심
+      # 로그 파일 접근 필수
       securityContext:
         runAsUser: 0
         runAsGroup: 0
@@ -118,14 +118,8 @@ spec:
 
       containers:
         - name: fluentd
-          image: 635014547592.dkr.ecr.us-east-1.amazonaws.com/fluentd:1.0.0
+          image: fluent/fluentd-kubernetes-daemonset:v1.15-debian-elasticsearch7-1.0
           imagePullPolicy: IfNotPresent
-
-          env:
-            - name: K8S_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
 
           args:
             - "-c"
@@ -150,7 +144,7 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: fluentd-config-v2
+            name: fluentd-config
 
         - name: fluentd-log
           emptyDir: {}
