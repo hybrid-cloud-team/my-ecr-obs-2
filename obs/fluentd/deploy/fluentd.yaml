@@ -18,9 +18,6 @@ metadata:
     eks.amazonaws.com/role-arn: arn:aws:iam::635014547592:role/fluentd-s3-irsa-role
 
 ---
-# =========================
-# ConfigMap
-# =========================
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -36,18 +33,16 @@ data:
         Name              tail
         Path              /var/log/containers/*.log
         Exclude_Path      *fluentd*.log,*fluent-bit*.log
-        Parser            cri
         Tag               kube.*
         Refresh_Interval  5
-        Mem_Buf_Limit     50MB
+        Mem_Buf_Limit     10MB
         Skip_Long_Lines   On
 
     [FILTER]
-        Name                kubernetes
-        Match               kube.*
-        Kube_Tag_Prefix     kube.var.log.containers.
-        Merge_Log           On
-        Keep_Log            On
+        Name      kubernetes
+        Match     kube.*
+        Merge_Log On
+        Keep_Log  On
 
     # =========================
     # Elasticsearch OUTPUT
@@ -65,18 +60,15 @@ data:
     # S3 OUTPUT (원본 로그 아카이브)
     # =========================
     [OUTPUT]
-        Name                s3
-        Match               kube.*
-        bucket              my-fluentbit-raw-logs-1
-        region              us-east-1
-        total_file_size     1M
-        upload_timeout      60s
+        Name            s3
+        Match           kube.*
+        bucket          my-fluentbit-raw-logs-1
+        region          us-east-1
+        total_file_size 1M
+        upload_timeout  60s
+        compression     gzip
+        s3_key_format   logs/%Y/%m/%d/%H/%UUID.gz
 
-        
-        compression         gzip
-
-        s3_key_format       logs/%Y/%m/%d/%H/%UUID.gz
-        s3_key_format_tag_delimiters ._
 ---
 # =========================
 # DaemonSet (이름 유지)
