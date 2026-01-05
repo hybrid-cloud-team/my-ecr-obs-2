@@ -97,6 +97,19 @@ spec:
       tolerations:
         - operator: Exists
 
+      # 🔴 핵심: filesystem storage 초기화용 initContainer
+      initContainers:
+        - name: init-fluentbit-storage
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /var/fluent-bit/state && chmod -R 777 /var/fluent-bit/state
+          volumeMounts:
+            - name: fluentbit-state
+              mountPath: /var/fluent-bit/state
+
       containers:
         - name: fluentd
           image: cr.fluentbit.io/fluent/fluent-bit:2.2.0
@@ -132,3 +145,4 @@ spec:
 
         - name: fluentbit-state
           emptyDir: {}
+
