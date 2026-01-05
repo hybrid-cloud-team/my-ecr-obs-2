@@ -1,3 +1,6 @@
+# =========================
+# ServiceAccount
+# =========================
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -6,10 +9,46 @@ metadata:
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::635014547592:role/fluentd-s3-irsa-role
 ---
+# =========================
+# ClusterRole (kubernetes_metadata 용)
+# =========================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluentd
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+---
+# =========================
+# ClusterRoleBinding
+# =========================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fluentd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: fluentd
+subjects:
+  - kind: ServiceAccount
+    name: fluentd
+    namespace: logging
+---
+# =========================
+# ConfigMap (중요: 이름 변경)
+# =========================
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: fluentd-config
+  name: fluentd-config-v2
   namespace: logging
 data:
   fluent.conf: |
@@ -26,8 +65,6 @@ data:
 
       <parse>
         @type json
-        time_key time
-        time_format %Y-%m-%dT%H:%M:%S.%N%z
       </parse>
     </source>
 
@@ -44,8 +81,10 @@ data:
       include_tag_key true
       type_name _doc
     </match>
-
 ---
+# =========================
+# DaemonSet
+# =========================
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -70,7 +109,6 @@ spec:
           imagePullPolicy: IfNotPresent
 
           env:
-            # 🔴 필수
             - name: K8S_NODE_NAME
               valueFrom:
                 fieldRef:
@@ -81,12 +119,12 @@ spec:
             - "/fluentd/etc/fluent.conf"
 
           volumeMounts:
-            # fluent.conf 파일만 덮어쓰기
+            # fluent.conf 파일만 정확히 덮어씀
             - name: config-volume
               mountPath: /fluentd/etc/fluent.conf
               subPath: fluent.conf
 
-            # 🔴 pos_file + file output용
+            # pos_file 저장용 (권한 문제 방지)
             - name: fluentd-log
               mountPath: /fluentd/log
 
@@ -99,10 +137,10 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: fluentd-config
+            name: fluentd-config-v2
 
         - name: fluentd-log
-          emptyDir: {}   # ← 권한 문제 완전 차단
+          emptyDir: {}
 
         - name: varlog
           hostPath:
