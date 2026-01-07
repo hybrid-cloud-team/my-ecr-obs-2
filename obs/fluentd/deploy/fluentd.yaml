@@ -140,9 +140,6 @@ spec:
       - name: fluentd
         image: cr.fluentbit.io/fluent/fluent-bit:2.2.0
         imagePullPolicy: IfNotPresent
-        args:
-          - -c
-          - /fluent-bit/etc/fluent-bit.conf
 
 
           # ⭐⭐⭐ 여기만 추가됨 ⭐⭐⭐
