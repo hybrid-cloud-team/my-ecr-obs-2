@@ -43,6 +43,7 @@ data:
         Exclude_Path          *fluentd*.log,*fluent-bit*.log
         Tag                   kube.var.log.containers.*
         Parser                cri
+        Path_Key              filename
         Refresh_Interval      5
         Rotate_Wait           30
         Skip_Long_Lines       On
