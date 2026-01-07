@@ -59,27 +59,15 @@ data:
     # ======================
     # ES (실시간 조회)
     # ======================
-    [FILTER]
-        Name   rewrite_tag
-        Match  kube.var.log.containers.*
-        Rule   $log .* kube.es true
-
     [OUTPUT]
         Name            es
-        Match           kube.es
-        Host            elasticsearch.logging.svc.cluster.local
+        Match           kube.var.log.containers.*
+        Host            elasticsearch
         Port            9200
         Logstash_Format On
         Logstash_Prefix fluentd
         Replace_Dots    On
 
-    # ======================
-    # S3 (저비용 아카이브)
-    # ======================
-    [FILTER]
-        Name   rewrite_tag
-        Match  kube.var.log.containers.*
-        Rule   $log .* kube.s3 true
 
 
     # [OUTPUT]
