@@ -34,6 +34,8 @@ data:
         storage.path          /var/fluent-bit/state
         storage.sync          normal
         storage.checksum      off
+        Parsers_File          parsers.conf
+
 
     [INPUT]
         Name                  tail
@@ -84,6 +86,13 @@ data:
 #     compression           gzip
 #     use_put_object        Off
 #     s3_key_format         /logs/%Y/%m/%d/%H/%M/%UUID.gz
+  parsers.conf: |
+    [PARSER]
+        Name        cri
+        Format      regex
+        Regex       ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<message>.*)$
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
 
 
 
