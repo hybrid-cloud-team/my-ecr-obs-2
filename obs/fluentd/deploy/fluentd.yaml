@@ -34,50 +34,52 @@ data:
         storage.path          /var/fluent-bit/state
         storage.sync          normal
         storage.checksum      off
-        Parsers_File          parsers.conf
-
 
     [INPUT]
         Name                  tail
         Path                  /var/log/containers/*.log
         Exclude_Path          *fluentd*.log,*fluent-bit*.log
-        Tag                   kube.var.log.containers.*
-        Path_Key              filename
+        Tag                   kube.raw
         Refresh_Interval      5
         Rotate_Wait           30
         Skip_Long_Lines       On
 
 
-    # ======================
-    # Kubernetes Metadata (핵심)
-    # ======================
     [FILTER]
         Name                kubernetes
-        Match               kube.var.log.containers.*
-
-        Use_Kubelet         On
-        Kubelet_Port        10250
-        Kube_Log_Path_Key   filename
+        Match               kube.raw
         Kube_URL            https://kubernetes.default.svc:443
         Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
-
+        Kube_Tag_Prefix     kube.var.log.containers.
         Merge_Log           On
         Keep_Log            Off
+
 
     # ======================
     # ES (실시간 조회)
     # ======================
+    [FILTER]
+        Name   rewrite_tag
+        Match  kube.raw
+        Rule   $log .* kube.es true
+
     [OUTPUT]
         Name            es
-        Match           kube.var.log.containers.*
-        Host            elasticsearch
+        Match           kube.es
+        Host            elasticsearch.logging.svc.cluster.local
         Port            9200
         Logstash_Format On
         Logstash_Prefix fluentd
         Replace_Dots    On
 
-
+    # ======================
+    # S3 (저비용 아카이브)
+    # ======================
+    [FILTER]
+        Name   rewrite_tag
+        Match  kube.raw
+        Rule   $log .* kube.s3 true
 
     # [OUTPUT]
 #     Name                  s3
@@ -89,13 +91,6 @@ data:
 #     compression           gzip
 #     use_put_object        Off
 #     s3_key_format         /logs/%Y/%m/%d/%H/%M/%UUID.gz
-  parsers.conf: |
-    [PARSER]
-        Name        cri
-        Format      regex
-        Regex       ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<message>.*)$
-        Time_Key    time
-        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
 
 
 
@@ -137,20 +132,9 @@ spec:
               mountPath: /var/fluent-bit/state
 
       containers:
-      - name: fluentd
-        image: cr.fluentbit.io/fluent/fluent-bit:2.2.0
-        imagePullPolicy: IfNotPresent
-        args:
-          - -c
-          - /fluent-bit/etc/fluent-bit.conf
-
-
-          # ⭐⭐⭐ 여기만 추가됨 ⭐⭐⭐
-          env:
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
+        - name: fluentd
+          image: cr.fluentbit.io/fluent/fluent-bit:2.2.0
+          imagePullPolicy: IfNotPresent
 
           volumeMounts:
             - name: varlog
