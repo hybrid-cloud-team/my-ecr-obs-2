@@ -123,7 +123,6 @@ spec:
       tolerations:
         - operator: Exists
 
-      # 🔴 핵심: filesystem storage 초기화용 initContainer
       initContainers:
         - name: init-fluentbit-storage
           image: busybox
@@ -137,18 +136,9 @@ spec:
               mountPath: /var/fluent-bit/state
 
       containers:
-      - name: fluentd
-        image: cr.fluentbit.io/fluent/fluent-bit:2.2.0
-        imagePullPolicy: IfNotPresent
-
-
-          # ⭐⭐⭐ 여기만 추가됨 ⭐⭐⭐
-          env:
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-
+        - name: fluentd
+          image: cr.fluentbit.io/fluent/fluent-bit:2.2.0
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: varlog
               mountPath: /var/log
@@ -179,5 +169,4 @@ spec:
 
         - name: fluentbit-state
           emptyDir: {}
-
 
