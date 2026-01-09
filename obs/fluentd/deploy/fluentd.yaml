@@ -35,6 +35,9 @@ data:
         storage.sync          normal
         storage.checksum      off
 
+    # ==================================================
+    # Kubernetes Container Logs (기존 유지)
+    # ==================================================
     [INPUT]
         Name                  tail
         Path                  /var/log/containers/*.log
@@ -44,7 +47,19 @@ data:
         Rotate_Wait           30
         Skip_Long_Lines       On
 
+    # ==================================================
+    # Jellyfin Activity Logs (추가된 부분 ⭐)
+    # ==================================================
+    [INPUT]
+        Name                  tail
+        Path                  /config/log/*.log
+        Tag                   jellyfin.activity
+        Refresh_Interval      5
+        Skip_Long_Lines       On
 
+    # ==================================================
+    # Kubernetes Filter (기존 유지)
+    # ==================================================
     [FILTER]
         Name                kubernetes
         Match               kube.raw
@@ -55,10 +70,9 @@ data:
         Merge_Log           On
         Keep_Log            Off
 
-
-    # ======================
-    # ES (실시간 조회)
-    # ======================
+    # ==================================================
+    # ES (실시간 조회 - 기존 유지)
+    # ==================================================
     [FILTER]
         Name   rewrite_tag
         Match  kube.raw
@@ -73,24 +87,36 @@ data:
         Logstash_Prefix fluentd
         Replace_Dots    On
 
-    # ======================
-    # S3 (저비용 아카이브)
-    # ======================
+    # ==================================================
+    # Jellyfin Activity → ES (추가된 부분 ⭐)
+    # ==================================================
+    [OUTPUT]
+        Name            es
+        Match           jellyfin.*
+        Host            elasticsearch.logging.svc.cluster.local
+        Port            9200
+        Logstash_Format On
+        Logstash_Prefix jellyfin
+        Replace_Dots    On
+
+    # ==================================================
+    # S3 (저비용 아카이브 - 주석 유지)
+    # ==================================================
     [FILTER]
         Name   rewrite_tag
         Match  kube.raw
         Rule   $log .* kube.s3 true
 
-    # [OUTPUT]
-#     Name                  s3
-#     Match                 kube.*
-#     bucket                my-fluentbit-raw-logs-1
-#     region                us-east-1
-#     total_file_size       200M
-#     upload_timeout        1h
-#     compression           gzip
-#     use_put_object        Off
-#     s3_key_format         /logs/%Y/%m/%d/%H/%M/%UUID.gz
+    [OUTPUT]
+        Name                  s3
+        Match                 kube.*
+        bucket                my-fluentbit-raw-logs-1
+        region                us-east-1
+        total_file_size       5Gi
+        upload_timeout        24h
+        compression           gzip
+        use_put_object        Off
+        s3_key_format         /logs/%Y/%m/%d/%H/%M/%UUID.gz
 
 
 
@@ -150,6 +176,10 @@ spec:
 
             - name: fluentbit-state
               mountPath: /var/fluent-bit/state
+              # 🔴 Jellyfin 로그 마운트 (추가된 부분 ⭐)
+            - name: jellyfin-config
+              mountPath: /config
+              readOnly: true
 
       volumes:
         - name: varlog
@@ -166,3 +196,8 @@ spec:
 
         - name: fluentbit-state
           emptyDir: {}
+
+          # 🔴 Jellyfin 로그 볼륨 (추가된 부분 ⭐)
+        - name: jellyfin-config
+          hostPath:
+            path: /var/lib/jellyfin
