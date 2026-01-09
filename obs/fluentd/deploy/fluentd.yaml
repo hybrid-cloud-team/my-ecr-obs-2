@@ -36,7 +36,7 @@ data:
         storage.checksum      off
 
     # ==================================================
-    # Kubernetes Container Logs (INPUT)
+    # Kubernetes Container Logs
     # ==================================================
     [INPUT]
         Name                  tail
@@ -62,15 +62,7 @@ data:
         Keep_Log            Off
 
     # ==================================================
-    # 🔥 최신 로그 보장용 타임스탬프 강제 보정 (핵심)
-    # ==================================================
-    [FILTER]
-        Name    record_modifier
-        Match   kube.var.log.containers.*
-        Record  @timestamp ${NOW}
-
-    # ==================================================
-    # 🔴 Jellyfin 로그만 분리
+    # Jellyfin 로그 분리
     # ==================================================
     [FILTER]
         Name   grep
@@ -78,7 +70,7 @@ data:
         Regex  container_name jellyfin
 
     # ==================================================
-    # Jellyfin → Elasticsearch
+    # Tag 분기
     # ==================================================
     [FILTER]
         Name           rewrite_tag
@@ -86,9 +78,6 @@ data:
         Rule           $log .* jellyfin.es true
         Emitter_Name   emit_jellyfin
 
-    # ==================================================
-    # 전체 로그 → Elasticsearch
-    # ==================================================
     [FILTER]
         Name           rewrite_tag
         Match          kube.var.log.containers.*
@@ -96,7 +85,7 @@ data:
         Emitter_Name   emit_es
 
     # ==================================================
-    # Elasticsearch (전체 로그)
+    # Elasticsearch (전체)
     # ==================================================
     [OUTPUT]
         Name            es
@@ -109,7 +98,7 @@ data:
         Retry_Limit     False
 
     # ==================================================
-    # Elasticsearch (Jellyfin 전용)
+    # Elasticsearch (Jellyfin)
     # ==================================================
     [OUTPUT]
         Name            es
@@ -122,7 +111,7 @@ data:
         Retry_Limit     False
 
     # ==================================================
-    # S3 (장기 보관)
+    # S3 (아카이브)
     # ==================================================
     [FILTER]
         Name           rewrite_tag
