@@ -9,47 +9,47 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush        10
+        Flush        5
         Log_Level    info
+        Daemon       off
+        Parsers_File parsers.conf
 
-    # ======================
-    # INPUT - S3 (ALB Access Log)
-    # ======================
+    @INCLUDE input.conf
+    @INCLUDE output.conf
+
+  input.conf: |
     [INPUT]
-        Name              s3
-        Tag               alb.access
-        Bucket            alb-access-log-jellyfin
-        Region            us-east-1
-        S3_Key_Format     /AWSLogs/635014547592/elasticloadbalancing/us-east-1/%Y/%m/%d/*
-        Interval_Sec      60
-        Use_Polling       On
+        Name              tail
+        Path              /var/log/containers/*.log
+        Parser            cri
+        Tag               kube.*
+        Refresh_Interval  5
+        Skip_Long_Lines   On
 
-    # ======================
-    # FILTER - 메타 정보 추가
-    # ======================
-    [FILTER]
-        Name    modify
-        Match   alb.access
-        Add     log_type alb_access
-        Add     service jellyfin
-
-    # ======================
-    # OUTPUT - Elasticsearch
-    # ======================
+  output.conf: |
     [OUTPUT]
-        Name            es
-        Match           alb.access
-        Host            elasticsearch.logging.svc.cluster.local
-        Port            9200
-        Logstash_Format On
-        Logstash_Prefix alb-access
-        Replace_Dots    On
+        Name              s3
+        Match             *
+        bucket            my-log-bucket-name
+        region            us-east-1
+        total_file_size   50M
+        upload_timeout    1m
+        s3_key_format     /k8s-logs/%Y/%m/%d/%H/%M/%S-$UUID.gz
+        compression       gzip
+
+  parsers.conf: |
+    [PARSER]
+        Name        cri
+        Format      regex
+        Regex       ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
 
 ---
 # ======================================================
 # Deployment - Fluent Bit (S3 Reader 전용)
 # ======================================================
-apiVersion: apps/v1
+aapiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fluentbit-s3
@@ -64,16 +64,20 @@ spec:
       labels:
         app: fluentbit-s3
     spec:
-      # 🔹 기존 IRSA ServiceAccount 그대로 사용
-      serviceAccountName: fluentd
+      serviceAccountName: fluentbit-s3
       containers:
-        - name: fluentbit
-          image: cr.fluentbit.io/fluent/fluent-bit:2.2.0
+        - name: fluent-bit
+          image: amazon/aws-for-fluent-bit:2.31.12
           imagePullPolicy: IfNotPresent
           volumeMounts:
+            - name: varlog
+              mountPath: /var/log
             - name: config
-              mountPath: /fluent-bit/etc/
+              mountPath: /fluent-bit/etc
       volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
         - name: config
           configMap:
             name: fluentbit-s3-config
