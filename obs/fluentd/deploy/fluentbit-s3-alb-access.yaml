@@ -1,0 +1,79 @@
+# ======================================================
+# ConfigMap - Fluent Bit (S3 ALB Access Log 전용)
+# ======================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentbit-s3-config
+  namespace: logging
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush        10
+        Log_Level    info
+
+    # ======================
+    # INPUT - S3 (ALB Access Log)
+    # ======================
+    [INPUT]
+        Name              s3
+        Tag               alb.access
+        Bucket            alb-access-log-jellyfin
+        Region            us-east-1
+        S3_Key_Format     /AWSLogs/635014547592/elasticloadbalancing/us-east-1/%Y/%m/%d/*
+        Interval_Sec      60
+        Use_Polling       On
+
+    # ======================
+    # FILTER - 메타 정보 추가
+    # ======================
+    [FILTER]
+        Name    modify
+        Match   alb.access
+        Add     log_type alb_access
+        Add     service jellyfin
+
+    # ======================
+    # OUTPUT - Elasticsearch
+    # ======================
+    [OUTPUT]
+        Name            es
+        Match           alb.access
+        Host            elasticsearch.logging.svc.cluster.local
+        Port            9200
+        Logstash_Format On
+        Logstash_Prefix alb-access
+        Replace_Dots    On
+
+---
+# ======================================================
+# Deployment - Fluent Bit (S3 Reader 전용)
+# ======================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fluentbit-s3
+  namespace: logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fluentbit-s3
+  template:
+    metadata:
+      labels:
+        app: fluentbit-s3
+    spec:
+      # 🔹 기존 IRSA ServiceAccount 그대로 사용
+      serviceAccountName: fluentd
+      containers:
+        - name: fluentbit
+          image: cr.fluentbit.io/fluent/fluent-bit:2.2.0
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config
+              mountPath: /fluent-bit/etc/
+      volumes:
+        - name: config
+          configMap:
+            name: fluentbit-s3-config
