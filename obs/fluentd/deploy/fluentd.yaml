@@ -72,7 +72,7 @@ data:
         Name           rewrite_tag
         Match          kube.raw
         Rule           $log .* jellyfin.es true
-        Emitter_Name   re_emitted
+        Emitter_Name   emit_jellyfin
 
     # ==================================================
     # Elasticsearch (전체 로그)
@@ -81,7 +81,7 @@ data:
         Name           rewrite_tag
         Match          kube.raw
         Rule           $log .* kube.es true
-        Emitter_Name   re_emitted
+        Emitter_Name   emit_es
 
     [OUTPUT]
         Name            es
@@ -113,7 +113,7 @@ data:
         Name           rewrite_tag
         Match          kube.raw
         Rule           $log .* kube.s3 true
-        Emitter_Name   re_emitted
+        Emitter_Name   emit_s3
 
     [OUTPUT]
         Name                  s3
@@ -126,6 +126,7 @@ data:
         use_put_object        Off
         s3_key_format         /logs/%Y/%m/%d/%H/%M/%UUID.gz
         store_dir             /var/fluent-bit/state
+
 ---
 # =========================
 # DaemonSet
