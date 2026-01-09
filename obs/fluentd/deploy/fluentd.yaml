@@ -61,7 +61,7 @@ data:
         Keep_Log            Off
 
     # ==================================================
-    # 🔴 Jellyfin 로그만 분리 (추가)
+    # 🔴 Jellyfin 로그만 분리
     # ==================================================
     [FILTER]
         Name   grep
@@ -69,17 +69,19 @@ data:
         Regex  container_name jellyfin
 
     [FILTER]
-        Name   rewrite_tag
-        Match  kube.raw
-        Rule   $log .* jellyfin.es true
+        Name           rewrite_tag
+        Match          kube.raw
+        Rule           $log .* jellyfin.es true
+        Emitter_Name   re_emitted
 
     # ==================================================
-    # Elasticsearch (기존 로그)
+    # Elasticsearch (전체 로그)
     # ==================================================
     [FILTER]
-        Name   rewrite_tag
-        Match  kube.raw
-        Rule   $log .* kube.es true
+        Name           rewrite_tag
+        Match          kube.raw
+        Rule           $log .* kube.es true
+        Emitter_Name   re_emitted
 
     [OUTPUT]
         Name            es
@@ -89,9 +91,10 @@ data:
         Logstash_Format On
         Logstash_Prefix fluentd
         Replace_Dots    On
+        Retry_Limit     False
 
     # ==================================================
-    # 🔴 Jellyfin → Elasticsearch (추가)
+    # 🔴 Jellyfin → Elasticsearch
     # ==================================================
     [OUTPUT]
         Name            es
@@ -101,14 +104,16 @@ data:
         Logstash_Format On
         Logstash_Prefix jellyfin
         Replace_Dots    On
+        Retry_Limit     False
 
     # ==================================================
-    # S3 (저비용 아카이브 – 구조 유지)
+    # S3 (저비용 아카이브)
     # ==================================================
     [FILTER]
-        Name   rewrite_tag
-        Match  kube.raw
-        Rule   $log .* kube.s3 true
+        Name           rewrite_tag
+        Match          kube.raw
+        Rule           $log .* kube.s3 true
+        Emitter_Name   re_emitted
 
     [OUTPUT]
         Name                  s3
@@ -120,6 +125,7 @@ data:
         compression           gzip
         use_put_object        Off
         s3_key_format         /logs/%Y/%m/%d/%H/%M/%UUID.gz
+        store_dir             /var/fluent-bit/state
 ---
 # =========================
 # DaemonSet
