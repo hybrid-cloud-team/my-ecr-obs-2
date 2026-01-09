@@ -28,7 +28,7 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush                 10
+        Flush                 1
         Log_Level             info
         storage.type          filesystem
         storage.path          /var/fluent-bit/state
@@ -46,9 +46,10 @@ data:
         Refresh_Interval      5
         Rotate_Wait           30
         Skip_Long_Lines       On
+        Mem_Buf_Limit         50MB
 
     # ==================================================
-    # Kubernetes Metadata (정석 설정)
+    # Kubernetes Metadata
     # ==================================================
     [FILTER]
         Name                kubernetes
@@ -61,7 +62,15 @@ data:
         Keep_Log            Off
 
     # ==================================================
-    # 🔴 Jellyfin 로그만 필터링
+    # 🔥 최신 로그 보장용 타임스탬프 강제 보정 (핵심)
+    # ==================================================
+    [FILTER]
+        Name    record_modifier
+        Match   kube.var.log.containers.*
+        Record  @timestamp ${NOW}
+
+    # ==================================================
+    # 🔴 Jellyfin 로그만 분리
     # ==================================================
     [FILTER]
         Name   grep
@@ -86,6 +95,9 @@ data:
         Rule           $log .* kube.es true
         Emitter_Name   emit_es
 
+    # ==================================================
+    # Elasticsearch (전체 로그)
+    # ==================================================
     [OUTPUT]
         Name            es
         Match           kube.es
@@ -97,7 +109,7 @@ data:
         Retry_Limit     False
 
     # ==================================================
-    # Jellyfin 전용 Elasticsearch 인덱스
+    # Elasticsearch (Jellyfin 전용)
     # ==================================================
     [OUTPUT]
         Name            es
@@ -129,6 +141,7 @@ data:
         use_put_object        Off
         s3_key_format         /logs/%Y/%m/%d/%H/%M/%UUID.gz
         store_dir             /var/fluent-bit/state
+
 
 
 ---
