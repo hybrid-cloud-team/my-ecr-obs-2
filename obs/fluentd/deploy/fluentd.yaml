@@ -90,8 +90,8 @@ data:
         Match                 kube.s3
         bucket                my-fluentbit-raw-logs-1
         region                us-east-1
-        total_file_size       5Gi
-        upload_timeout        24h
+        total_file_size       200MB
+        upload_timeout        10M
         compression           gzip
         use_put_object        Off
         s3_key_format         /logs/%Y/%m/%d/%H/%M/%UUID.gz
