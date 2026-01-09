@@ -89,7 +89,7 @@ data:
     [OUTPUT]
         Name            es
         Match           kube.es
-        Host            elasticsearch.logging.svc.cluster.local
+        Host            elasticsearch
         Port            9200
         Logstash_Format On
         Logstash_Prefix fluentd
@@ -102,7 +102,7 @@ data:
     [OUTPUT]
         Name            es
         Match           jellyfin.es
-        Host            elasticsearch.logging.svc.cluster.local
+        Host            elasticsearch
         Port            9200
         Logstash_Format On
         Logstash_Prefix jellyfin
