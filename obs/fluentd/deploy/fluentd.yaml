@@ -28,67 +28,54 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush                 10
-        Log_Level             info
-        storage.type          filesystem
-        storage.path          /var/fluent-bit/state
-        storage.sync          normal
-        storage.checksum      off
+        Flush        5
+        Log_Level    info
 
-    # ==================================================
-    # Kubernetes Container Logs (INPUT)
-    # ==================================================
+    # =========================
+    # INPUT (CRI 로그 + Parser)
+    # =========================
     [INPUT]
-        Name                  tail
-        Path                  /var/log/containers/*.log
-        Exclude_Path          *fluentd*.log,*fluent-bit*.log
-        Tag                   kube.var.log.containers.*
-        Refresh_Interval      5
-        Rotate_Wait           30
-        Skip_Long_Lines       On
+        Name        tail
+        Path        /var/log/containers/*.log
+        Tag         kube.*
+        Parser      cri
+        Refresh_Interval 5
+        Skip_Long_Lines On
 
-    # ==================================================
-    # Kubernetes Metadata (정석 설정)
-    # ==================================================
+    # =========================
+    # Kubernetes Metadata
+    # =========================
     [FILTER]
         Name                kubernetes
-        Match               kube.var.log.containers.*
-        Kube_URL            https://kubernetes.default.svc:443
-        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Match               kube.*
         Kube_Tag_Prefix     kube.var.log.containers.
         Merge_Log           On
         Keep_Log            Off
 
-    # ==================================================
-    # Jellyfin 로그만 필터링
-    # ==================================================
+    # =========================
+    # Jellyfin 분리
+    # =========================
     [FILTER]
-        Name   grep
-        Match  kube.var.log.containers.*
-        Regex  container_name jellyfin
+        Name    grep
+        Match   kube.*
+        Regex   container_name jellyfin
 
-    # ==================================================
-    # Jellyfin → Elasticsearch
-    # ==================================================
     [FILTER]
-        Name           rewrite_tag
-        Match          kube.var.log.containers.*
-        Rule           $log .* jellyfin.es true
-        Emitter_Name   emit_jellyfin
+        Name    rewrite_tag
+        Match   kube.*
+        Rule    $log .* jellyfin.es true
 
-    # ==================================================
-    # 전체 로그 → Elasticsearch
-    # ==================================================
+    # =========================
+    # 전체 로그 → ES
+    # =========================
     [FILTER]
-        Name           rewrite_tag
-        Match          kube.var.log.containers.*
-        Rule           $log .* kube.es true
-        Emitter_Name   emit_es
+        Name    rewrite_tag
+        Match   kube.*
+        Rule    $log .* kube.es true
 
-    # ==================================================
-    # Elasticsearch OUTPUT (⭐ @timestamp 핵심 해결)
-    # ==================================================
+    # =========================
+    # Elasticsearch OUTPUT
+    # =========================
     [OUTPUT]
         Name            es
         Match           kube.es
@@ -96,10 +83,7 @@ data:
         Port            9200
         Logstash_Format On
         Logstash_Prefix fluentd
-        Time_Key        time
-        Time_Key_Format %Y-%m-%dT%H:%M:%S.%LZ
         Replace_Dots    On
-        Retry_Limit     False
 
     [OUTPUT]
         Name            es
@@ -108,34 +92,26 @@ data:
         Port            9200
         Logstash_Format On
         Logstash_Prefix onprem-jellyfin
-        Time_Key        time
-        Time_Key_Format %Y-%m-%dT%H:%M:%S.%LZ
         Replace_Dots    On
-        Retry_Limit     False
 
-    # ==================================================
+    # =========================
     # S3 (장기 보관)
-    # ==================================================
-    [FILTER]
-        Name           rewrite_tag
-        Match          kube.var.log.containers.*
-        Rule           $log .* kube.s3 true
-        Emitter_Name   emit_s3
-
+    # =========================
     [OUTPUT]
-        Name                  s3
-        Match                 kube.s3
-        bucket                my-fluentbit-raw-logs-1
-        region                us-east-1
-        total_file_size       200MB
-        upload_timeout        10M
-        compression           gzip
-        use_put_object        Off
-        s3_key_format         /logs/%Y/%m/%d/%H/%M/%UUID.gz
-        store_dir             /var/fluent-bit/state
+        Name            s3
+        Match           kube.*
+        bucket          my-fluentbit-raw-logs-1
+        region          us-east-1
+        compression     gzip
+        s3_key_format   /logs/%Y/%m/%d/%H/%M/%UUID.gz
 
-
-
+  parsers.conf: |
+    [PARSER]
+        Name        cri
+        Format      regex
+        Regex       ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
 ---
 # =========================
 # DaemonSet
