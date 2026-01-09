@@ -28,7 +28,7 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush                 1
+        Flush                 10
         Log_Level             info
         storage.type          filesystem
         storage.path          /var/fluent-bit/state
@@ -36,7 +36,7 @@ data:
         storage.checksum      off
 
     # ==================================================
-    # Kubernetes Container Logs
+    # Kubernetes Container Logs (INPUT)
     # ==================================================
     [INPUT]
         Name                  tail
@@ -46,10 +46,9 @@ data:
         Refresh_Interval      5
         Rotate_Wait           30
         Skip_Long_Lines       On
-        Mem_Buf_Limit         50MB
 
     # ==================================================
-    # Kubernetes Metadata
+    # Kubernetes Metadata (정석 설정)
     # ==================================================
     [FILTER]
         Name                kubernetes
@@ -62,7 +61,7 @@ data:
         Keep_Log            Off
 
     # ==================================================
-    # Jellyfin 로그 분리
+    # Jellyfin 로그만 필터링
     # ==================================================
     [FILTER]
         Name   grep
@@ -70,7 +69,7 @@ data:
         Regex  container_name jellyfin
 
     # ==================================================
-    # Tag 분기
+    # Jellyfin → Elasticsearch
     # ==================================================
     [FILTER]
         Name           rewrite_tag
@@ -78,6 +77,9 @@ data:
         Rule           $log .* jellyfin.es true
         Emitter_Name   emit_jellyfin
 
+    # ==================================================
+    # 전체 로그 → Elasticsearch
+    # ==================================================
     [FILTER]
         Name           rewrite_tag
         Match          kube.var.log.containers.*
@@ -85,7 +87,7 @@ data:
         Emitter_Name   emit_es
 
     # ==================================================
-    # Elasticsearch (전체)
+    # Elasticsearch OUTPUT (⭐ @timestamp 핵심 해결)
     # ==================================================
     [OUTPUT]
         Name            es
@@ -94,24 +96,25 @@ data:
         Port            9200
         Logstash_Format On
         Logstash_Prefix fluentd
+        Time_Key        time
+        Time_Key_Format %Y-%m-%dT%H:%M:%S.%LZ
         Replace_Dots    On
         Retry_Limit     False
 
-    # ==================================================
-    # Elasticsearch (Jellyfin)
-    # ==================================================
     [OUTPUT]
         Name            es
         Match           jellyfin.es
         Host            elasticsearch
         Port            9200
         Logstash_Format On
-        Logstash_Prefix jellyfin
+        Logstash_Prefix onprem-jellyfin
+        Time_Key        time
+        Time_Key_Format %Y-%m-%dT%H:%M:%S.%LZ
         Replace_Dots    On
         Retry_Limit     False
 
     # ==================================================
-    # S3 (아카이브)
+    # S3 (장기 보관)
     # ==================================================
     [FILTER]
         Name           rewrite_tag
