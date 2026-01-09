@@ -32,74 +32,58 @@ data:
         Log_Level    info
 
     # =========================
-    # INPUT (CRI 로그 + Parser)
+    # INPUT (CRI 로그)
     # =========================
     [INPUT]
         Name        tail
         Path        /var/log/containers/*.log
-        Tag         kube.*
+        Tag         kube.var.log.containers.*
         Parser      cri
         Refresh_Interval 5
         Skip_Long_Lines On
 
     # =========================
-    # Kubernetes Metadata
+    # Kubernetes Metadata (정석)
     # =========================
     [FILTER]
         Name                kubernetes
-        Match               kube.*
+        Match               kube.var.log.containers.*
         Kube_Tag_Prefix     kube.var.log.containers.
         Merge_Log           On
         Keep_Log            Off
 
     # =========================
-    # Jellyfin 분리
-    # =========================
-    [FILTER]
-        Name    grep
-        Match   kube.*
-        Regex   container_name jellyfin
-
-    [FILTER]
-        Name    rewrite_tag
-        Match   kube.*
-        Rule    $log .* jellyfin.es true
-
-    # =========================
-    # 전체 로그 → ES
-    # =========================
-    [FILTER]
-        Name    rewrite_tag
-        Match   kube.*
-        Rule    $log .* kube.es true
-
-    # =========================
-    # Elasticsearch OUTPUT
+    # Elasticsearch (전체 로그)
     # =========================
     [OUTPUT]
         Name            es
-        Match           kube.es
+        Match           kube.var.log.containers.*
         Host            elasticsearch
         Port            9200
         Logstash_Format On
         Logstash_Prefix fluentd
         Replace_Dots    On
+        Retry_Limit     False
 
+    # =========================
+    # Elasticsearch (Jellyfin 전용 인덱스)
+    # =========================
     [OUTPUT]
         Name            es
-        Match           jellyfin.es
+        Match           kube.var.log.containers.*
         Host            elasticsearch
         Port            9200
         Logstash_Format On
         Logstash_Prefix onprem-jellyfin
         Replace_Dots    On
+        Retry_Limit     False
 
     # =========================
-    # S3 (장기 보관)
+    # S3 (장기 보관 – 원본 로그)
     # =========================
     [OUTPUT]
         Name            s3
-        Match           kube.*
+        Match           kube.var.log.containers.*
         bucket          my-fluentbit-raw-logs-1
         region          us-east-1
         compression     gzip
@@ -112,6 +96,7 @@ data:
         Regex       ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
         Time_Key    time
         Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+
 ---
 # =========================
 # DaemonSet
