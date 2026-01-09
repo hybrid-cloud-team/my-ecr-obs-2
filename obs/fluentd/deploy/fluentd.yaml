@@ -61,7 +61,20 @@ data:
         Keep_Log            Off
 
     # ==================================================
-    # Elasticsearch (실시간 조회)
+    # 🔴 Jellyfin 로그만 분리 (추가)
+    # ==================================================
+    [FILTER]
+        Name   grep
+        Match  kube.raw
+        Regex  container_name jellyfin
+
+    [FILTER]
+        Name   rewrite_tag
+        Match  kube.raw
+        Rule   $log .* jellyfin.es true
+
+    # ==================================================
+    # Elasticsearch (기존 로그)
     # ==================================================
     [FILTER]
         Name   rewrite_tag
@@ -75,6 +88,18 @@ data:
         Port            9200
         Logstash_Format On
         Logstash_Prefix fluentd
+        Replace_Dots    On
+
+    # ==================================================
+    # 🔴 Jellyfin → Elasticsearch (추가)
+    # ==================================================
+    [OUTPUT]
+        Name            es
+        Match           jellyfin.es
+        Host            elasticsearch.logging.svc.cluster.local
+        Port            9200
+        Logstash_Format On
+        Logstash_Prefix jellyfin
         Replace_Dots    On
 
     # ==================================================
