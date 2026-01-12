@@ -1,14 +1,8 @@
-# =========================
-# Namespace
-# =========================
 apiVersion: v1
 kind: Namespace
 metadata:
   name: logging
 ---
-# =========================
-# ServiceAccount (IRSA)
-# =========================
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -17,9 +11,6 @@ metadata:
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::635014547592:role/fluentd-s3-irsa-role
 ---
-# =========================
-# ConfigMap (Fluent Bit)
-# =========================
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -31,9 +22,6 @@ data:
         Flush        5
         Log_Level    info
 
-    # =========================
-    # INPUT (CRI 로그)
-    # =========================
     [INPUT]
         Name        tail
         Path        /var/log/containers/*.log
@@ -42,19 +30,13 @@ data:
         Refresh_Interval 5
         Skip_Long_Lines On
 
-    # =========================
-    # Kubernetes Metadata (정석)
-    # =========================
     [FILTER]
-        Name                kubernetes
-        Match               kube.var.log.containers.*
-        Kube_Tag_Prefix     kube.var.log.containers.
-        Merge_Log           On
-        Keep_Log            Off
+        Name            kubernetes
+        Match           kube.var.log.containers.*
+        Kube_Tag_Prefix kube.var.log.containers.
+        Merge_Log       On
+        Keep_Log        Off
 
-    # =========================
-    # Elasticsearch (전체 로그)
-    # =========================
     [OUTPUT]
         Name            es
         Match           kube.var.log.containers.*
@@ -65,22 +47,6 @@ data:
         Replace_Dots    On
         Retry_Limit     False
 
-    # =========================
-    # Elasticsearch (Jellyfin 전용 인덱스)
-    # =========================
-    [OUTPUT]
-        Name            es
-        Match           kube.var.log.containers.*
-        Host            elasticsearch
-        Port            9200
-        Logstash_Format On
-        Logstash_Prefix onprem-jellyfin
-        Replace_Dots    On
-        Retry_Limit     False
-
-    # =========================
-    # S3 (장기 보관 – 원본 로그)
-    # =========================
     [OUTPUT]
         Name            s3
         Match           kube.var.log.containers.*
@@ -88,20 +54,14 @@ data:
         region          us-east-1
         compression     gzip
         s3_key_format   /logs/%Y/%m/%d/%H/%M/%UUID.gz
-        # =========================
-        
-# INPUT (Jellyfin Activity Log)ㅀㄴㅇㅀㅇ
-# =========================
-      [INPUT]
+
+    [INPUT]
         Name              tail
         Path              /jellyfin-config/log/log_*.log
         Tag               jellyfin.activity
         Refresh_Interval  5
         Read_from_Head    True
 
-# =========================
-# Elasticsearch (Jellyfin Activity 전용)
-# =========================
     [OUTPUT]
         Name            es
         Match           jellyfin.activity
@@ -112,8 +72,6 @@ data:
         Replace_Dots    On
         Retry_Limit     False
 
-
-
   parsers.conf: |
     [PARSER]
         Name        cri
@@ -121,13 +79,7 @@ data:
         Regex       ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
         Time_Key    time
         Time_Format %Y-%m-%dT%H:%M:%S.%L%z
-    
-        
-
 ---
-# =========================
-# DaemonSet
-# =========================
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -145,61 +97,45 @@ spec:
       serviceAccountName: fluentd
       tolerations:
         - operator: Exists
-
       initContainers:
         - name: init-fluentbit-storage
           image: busybox
           command:
             - sh
             - -c
-            - |
-              mkdir -p /var/fluent-bit/state && chmod -R 777 /var/fluent-bit/state
+            - mkdir -p /var/fluent-bit/state && chmod -R 777 /var/fluent-bit/state
           volumeMounts:
             - name: fluentbit-state
               mountPath: /var/fluent-bit/state
-
       containers:
         - name: fluentd
           image: cr.fluentbit.io/fluent/fluent-bit:2.2.0
-          imagePullPolicy: IfNotPresent
-
           volumeMounts:
             - name: varlog
               mountPath: /var/log
               readOnly: true
-
             - name: containers
               mountPath: /var/log/containers
               readOnly: true
-
             - name: config
               mountPath: /fluent-bit/etc/
-
             - name: fluentbit-state
               mountPath: /var/fluent-bit/state
-
-            #ㄴㄹㄴㅇㄹㅇㄴ
             - name: jellyfin-config
               mountPath: /jellyfin-config
               readOnly: true
-
       volumes:
         - name: varlog
           hostPath:
             path: /var/log
-
         - name: containers
           hostPath:
             path: /var/log/containers
-
         - name: config
           configMap:
             name: fluentd-config
-
         - name: fluentbit-state
           emptyDir: {}
-          #ㅁㄴㅇㅀㄴㅇㅀ
         - name: jellyfin-config
           persistentVolumeClaim:
             claimName: jellyfin-config-efs
- 
