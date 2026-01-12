@@ -95,7 +95,7 @@ data:
         # =========================
     [INPUT]
         Name              tail
-        Path              /jellyfin-logs/log_*.log
+        Path              /jellyfin-config/log/log_*.log
         Tag               jellyfin.activity
         Refresh_Interval  5
         Read_from_Head    True
@@ -177,6 +177,11 @@ spec:
 
             - name: fluentbit-state
               mountPath: /var/fluent-bit/state
+              #------사용자 활동 수
+
+            - name: jellyfin-config
+              mountPath: /jellyfin-config
+              readOnly: true
 
       volumes:
         - name: varlog
@@ -193,3 +198,7 @@ spec:
 
         - name: fluentbit-state
           emptyDir: {}
+
+        - name: jellyfin-config
+          persistentVolumeClaim:
+            claimName: jellyfin-config-efs
