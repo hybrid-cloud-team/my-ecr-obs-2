@@ -55,22 +55,7 @@ data:
         compression     gzip
         s3_key_format   /logs/%Y/%m/%d/%H/%M/%UUID.gz
 
-    [INPUT]
-        Name              tail
-        Path              /jellyfin-config/log/log_*.log
-        Tag               jellyfin.activity
-        Refresh_Interval  5
-        Read_from_Head    True
 
-    [OUTPUT]
-        Name            es
-        Match           jellyfin.activity
-        Host            elasticsearch
-        Port            9200
-        Logstash_Format On
-        Logstash_Prefix jellyfin-activity
-        Replace_Dots    On
-        Retry_Limit     False
 
   parsers.conf: |
     [PARSER]
@@ -121,9 +106,7 @@ spec:
               mountPath: /fluent-bit/etc/
             - name: fluentbit-state
               mountPath: /var/fluent-bit/state
-            - name: jellyfin-config
-              mountPath: /jellyfin-config
-              readOnly: true
+
       volumes:
         - name: varlog
           hostPath:
@@ -136,6 +119,4 @@ spec:
             name: fluentd-config
         - name: fluentbit-state
           emptyDir: {}
-        - name: jellyfin-config
-          persistentVolumeClaim:
-            claimName: jellyfin-config-efs
+
