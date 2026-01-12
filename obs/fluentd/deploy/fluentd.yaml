@@ -90,30 +90,6 @@ data:
         s3_key_format   /logs/%Y/%m/%d/%H/%M/%UUID.gz
 
 
-        # =========================
-        # INPUT (Jellyfin Activity Log)
-        # =========================
-    [INPUT]
-        Name              tail
-        Path              /jellyfin-config/log/log_*.log
-        Tag               jellyfin.activity
-        Refresh_Interval  5
-        Read_from_Head    True
-
-# =========================
-# Elasticsearch (Jellyfin Activity 전용)
-# =========================
-    [OUTPUT]
-        Name            es
-        Match           jellyfin.activity
-        Host            elasticsearch
-        Port            9200
-        Logstash_Format On
-        Logstash_Prefix jellyfin-activity
-        Replace_Dots    On
-        Retry_Limit     False
-
-
   parsers.conf: |
     [PARSER]
         Name        cri
@@ -177,11 +153,6 @@ spec:
 
             - name: fluentbit-state
               mountPath: /var/fluent-bit/state
-              #------사용자 활동 수
-
-            - name: jellyfin-config
-              mountPath: /jellyfin-config
-              readOnly: true
 
       volumes:
         - name: varlog
@@ -199,6 +170,3 @@ spec:
         - name: fluentbit-state
           emptyDir: {}
 
-        - name: jellyfin-config
-          persistentVolumeClaim:
-            claimName: jellyfin-config-efs
