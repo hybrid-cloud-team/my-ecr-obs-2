@@ -92,7 +92,7 @@ data:
         
 # INPUT (Jellyfin Activity Log)ㅀㄴㅇㅀㅇ
 # =========================
-    [INPUT]
+      [INPUT]
         Name              tail
         Path              /jellyfin-config/log/log_*.log
         Tag               jellyfin.activity
@@ -179,9 +179,9 @@ spec:
               mountPath: /var/fluent-bit/state
 
             #ㄴㄹㄴㅇㄹㅇㄴ
-             - name: jellyfin-config
-               mountPath: /jellyfin-config
-               readOnly: true
+            - name: jellyfin-config
+              mountPath: /jellyfin-config
+              readOnly: true
 
       volumes:
         - name: varlog
